@@ -84,6 +84,12 @@ describe('hydrate()', () => {
 
 	it('should skip comment nodes between dom nodes', () => {
 		scratch.innerHTML = '<p><i>0</i><!-- c --><b>1</b></p>';
+		clearLog();
+		const records = [];
+		const obs = new MutationObserver(r => {
+			records.push(...r);
+		});
+		obs.observe(scratch, { childList: true, subtree: true });
 		hydrate(
 			<p>
 				<i>0</i>
@@ -91,7 +97,12 @@ describe('hydrate()', () => {
 			</p>,
 			scratch
 		);
+		records.push(...obs.takeRecords());
+		obs.disconnect();
 		expect(scratch.innerHTML).to.equal('<p><i>0</i><b>1</b></p>');
+		// Expect only one mutation: removing the comment.
+		expect(records.length).to.equal(1);
+		expect(getLog()).to.deep.equal(['Comment.remove()']);
 	});
 
 	it('should reuse existing DOM when given components', () => {
@@ -460,7 +471,18 @@ describe('hydrate()', () => {
 
 	it('should skip comment nodes', () => {
 		scratch.innerHTML = '<p>hello <!-- c -->foo</p>';
+		clearLog();
+		const records = [];
+		const obs = new MutationObserver(r => {
+			records.push(...r);
+		});
+		obs.observe(scratch, { childList: true, subtree: true });
 		hydrate(<p>hello {'foo'}</p>, scratch);
+		records.push(...obs.takeRecords());
+		obs.disconnect();
 		expect(scratch.innerHTML).to.equal('<p>hello foo</p>');
+		// Expect only one mutation: removing the comment.
+		expect(records.length).to.equal(1);
+		expect(getLog()).to.deep.equal(['Comment.remove()']);
 	});
 });
